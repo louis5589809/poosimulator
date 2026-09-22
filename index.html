@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Locust: Blackwood Manor Creepypasta Nightmares</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@300;400;600;800&family=Share+Tech+Mono&family=Nosifer&display=swap" rel="stylesheet">
+    
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #020204;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+
+        .font-creepster { font-family: 'Creepster', cursive; }
+        .font-nosifer { font-family: 'Nosifer', cursive; }
+        .font-mono-tech { font-family: 'Share Tech Mono', monospace; }
+
+        /* CRT Static / Scanline Visual Effect overlay */
+        .vhs-overlay {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+            background-size: 100% 4px, 8px 100%;
+            pointer-events: none;
+        }
+
+        /* Hiding spot vignette effect */
+        .hiding-vignette {
+            background: radial-gradient(circle, rgba(0,0,0,0.15) 10%, rgba(0,0,0,0.75) 50%, rgba(0,0,0,0.98) 100%);
+            box-shadow: inset 0 0 150px #000;
+        }
+
+        /* Extreme Glitch & Violent Shake animation for jumpscare */
+        @keyframes ViolentJumpscareShake {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); filter: contrast(300%) brightness(200%) hue-rotate(0deg); }
+            10% { transform: translate(-45px, 25px) scale(1.35) rotate(-9deg); filter: contrast(500%) invert(100%); }
+            20% { transform: translate(40px, -40px) scale(1.45) rotate(10deg); filter: contrast(600%) saturate(800%); }
+            30% { transform: translate(-35px, -45px) scale(1.3) rotate(-6deg); }
+            40% { transform: translate(45px, 35px) scale(1.5) rotate(11deg); filter: invert(100%); }
+            50% { transform: translate(-50px, 20px) scale(1.55) rotate(-10deg); }
+            60% { transform: translate(35px, 45px) scale(1.4) rotate(6deg); filter: contrast(700%); }
+            70% { transform: translate(-40px, -30px) scale(1.6) rotate(-11deg); }
+            80% { transform: translate(50px, -20px) scale(1.45) rotate(8deg); filter: invert(80%); }
+            90% { transform: translate(-20px, 40px) scale(1.35) rotate(-4deg); }
+            100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+        }
+
+        .jumpscare-anim {
+            animation: ViolentJumpscareShake 0.04s infinite alternate;
+        }
+
+        /* ECG Heart Rate Monitor Line Effect */
+        .ecg-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: ecgDash 1.8s linear infinite;
+        }
+
+        @keyframes ecgDash {
+            to { stroke-dashoffset: 0; }
+        }
+
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden text-gray-200">
+
+    <!-- WebGL Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full z-0"></div>
+
+    <!-- VHS Scanline Filter Overlay -->
+    <div id="vhs-filter" class="vhs-overlay absolute inset-0 w-full h-full z-10 pointer-events-none"></div>
+
+    <!-- Static / Noise Overlay Canvas -->
+    <canvas id="static-canvas" class="absolute inset-0 w-full h-full z-12 pointer-events-none opacity-20"></canvas>
+
+    <!-- Red Panic Flash Overlay -->
+    <div id="fear-overlay" class="absolute inset-0 w-full h-full z-15 pointer-events-none transition-opacity duration-300 opacity-0 bg-radial from-transparent via-red-950/60 to-red-900/95"></div>
+
+    <!-- Blood Splatter Jumpscare Canvas Overlay -->
+    <canvas id="blood-canvas" class="absolute inset-0 w-full h-full z-25 pointer-events-none hidden"></canvas>
+
+    <!-- Hiding Spot Vignette HUD & Breath Holding Minigame -->
+    <div id="hiding-overlay" class="hiding-vignette absolute inset-0 w-full h-full z-15 pointer-events-none hidden flex flex-col justify-between p-8">
+        <div class="w-full text-center">
+            <span class="inline-block bg-black/90 px-8 py-3 rounded-xl border border-red-800 text-red-500 font-mono-tech text-lg tracking-widest uppercase shadow-2xl animate-pulse">
+                [ INSIDE HIDING SPOT ] - Press [E] to Step Out
+            </span>
+        </div>
+
+        <!-- Breath Meter Minigame Prompt -->
+        <div class="w-full max-w-md mx-auto bg-black/95 border border-zinc-700 p-4 rounded-xl shadow-2xl text-center space-y-2 pointer-events-auto">
+            <div class="flex justify-between items-center text-xs font-mono-tech text-amber-400">
+                <span>HOLD BREATH [HOLD SPACEBAR]</span>
+                <span id="breath-val">100%</span>
+            </div>
+            <div class="w-full bg-zinc-900 h-3 rounded-full overflow-hidden border border-zinc-700">
+                <div id="breath-bar" class="bg-cyan-500 h-full w-full transition-all duration-100"></div>
+            </div>
+            <div class="text-[11px] text-zinc-400 font-mono-tech">
+                The Locust can hear your breathing! Hold Spacebar to stay silent when it is close!
+            </div>
+        </div>
+
+        <div class="w-full text-center text-xs text-zinc-400 font-mono-tech bg-black/80 py-2 rounded">
+            Listen closely to the heavy footsteps... Wait until it passes.
+        </div>
+    </div>
+
+    <!-- ULTRA TERRIFYING CREEPYPASTA JUMPSCARE OVERLAY -->
+    <div id="jumpscare-container" class="absolute inset-0 z-50 bg-black hidden flex flex-col items-center justify-center overflow-hidden pointer-events-none">
+        <div id="jumpscare-viewport" class="relative w-full h-full flex flex-col items-center justify-center jumpscare-anim bg-black">
+            <!-- Terrifying Creepypasta Face SVG -->
+            <svg id="jumpscare-face-svg" class="w-full h-full max-w-6xl max-h-6xl drop-shadow-[0_0_150px_rgba(255,0,0,1)] scale-150" viewBox="0 0 500 500">
+                <!-- Distorted Pale Elongated Skull -->
+                <path d="M 130 60 C 130 -10, 370 -10, 370 60 C 410 180, 420 380, 340 490 C 250 530, 250 530, 160 490 C 80 380, 90 180, 130 60 Z" fill="#e8e8f0" stroke="#000000" stroke-width="12" />
+                <!-- Sunken Void Eyes -->
+                <ellipse cx="180" cy="160" rx="55" ry="75" fill="#000000" />
+                <ellipse cx="320" cy="160" rx="55" ry="75" fill="#000000" />
+                <!-- Pinpoint Blood-Red Glowing Pupils -->
+                <circle cx="180" cy="160" r="14" fill="#ff0000" class="animate-ping" />
+                <circle cx="320" cy="160" r="14" fill="#ff0000" class="animate-ping" />
+                <!-- Bleeding Eyes/Black Stains -->
+                <path d="M 175 235 Q 170 340 160 440" stroke="#880000" stroke-width="20" fill="none" stroke-linecap="round" />
+                <path d="M 325 235 Q 330 340 340 440" stroke="#880000" stroke-width="20" fill="none" stroke-linecap="round" />
+                <!-- Distorted Agonized Razor Teeth Smile -->
+                <path d="M 140 320 Q 250 520 360 320 Q 250 280 140 320 Z" fill="#050000" stroke="#aa0000" stroke-width="10" />
+                <!-- Razor Needle Teeth -->
+                <path d="M 150 322 L 164 380 L 178 323 L 192 385 L 206 324 L 220 390 L 234 324 L 248 395 L 262 324 L 276 390 L 290 324 L 304 385 L 318 323 L 332 380 L 346 322" fill="#ffffff" stroke="#000" />
+                <path d="M 155 330 L 169 295 L 183 330 L 197 290 L 211 330 L 225 288 L 239 330 L 253 288 L 267 330 L 281 290 L 295 330 L 309 295 L 323 330" fill="#ffffff" stroke="#000" />
+            </svg>
+            <div class="absolute bottom-12 font-nosifer text-red-600 text-6xl md:text-8xl tracking-widest text-center animate-pulse drop-shadow-[0_0_40px_rgba(255,0,0,1)]">
+                I SEE YOU
+            </div>
+        </div>
+    </div>
+
+    <!-- HUD Overlay -->
+    <div id="hud" class="absolute inset-0 w-full h-full z-20 pointer-events-none p-6 flex flex-col justify-between hidden">
+        
+        <!-- Top HUD Bar -->
+        <div class="flex justify-between items-start">
+            <!-- Objectives Panel -->
+            <div class="bg-black/90 backdrop-blur-md border border-zinc-800 rounded-xl p-4 w-80 md:w-96 shadow-2xl">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-red-500 mb-1 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></span> Active Objective
+                </h3>
+                <p id="objective-text" class="text-sm font-mono-tech text-zinc-200">Find Bronze, Silver, & Gold Master Keys to unlock the Main Entrance Door!</p>
+            </div>
+
+            <!-- Location & Heartbeat ECG Rate -->
+            <div class="flex flex-col items-end gap-3">
+                <div class="bg-black/90 backdrop-blur-md border border-zinc-800 rounded-xl px-5 py-2.5 text-right shadow-2xl">
+                    <div class="text-[10px] uppercase text-zinc-400 font-bold tracking-wider">Current Location</div>
+                    <div id="floor-text" class="text-xl font-mono-tech font-bold text-amber-500">1F - Main Entrance Hall</div>
+                </div>
+
+                <!-- Heart Rate Monitor HUD -->
+                <div class="bg-black/90 backdrop-blur-md border border-zinc-800 rounded-xl p-3 w-56 shadow-2xl flex items-center justify-between">
+                    <div>
+                        <div class="text-[10px] uppercase text-zinc-400 font-bold">HEART RATE</div>
+                        <div id="bpm-text" class="text-lg font-mono-tech font-bold text-emerald-400">72 BPM</div>
+                    </div>
+                    <svg class="w-24 h-8" viewBox="0 0 100 30">
+                        <path id="ecg-path" d="M0,15 L20,15 L25,5 L30,25 L35,10 L40,20 L45,15 L100,15" fill="none" stroke="#10b981" stroke-width="2.5" class="ecg-line" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Crosshair & Interaction Prompts -->
+        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <div id="crosshair" class="w-2.5 h-2.5 rounded-full bg-white/90 border border-black transition-transform duration-100 shadow-[0_0_10px_rgba(255,255,255,0.9)]"></div>
+            <div id="interaction-prompt" class="mt-8 bg-black/95 border border-amber-500/80 text-amber-300 text-sm font-mono-tech px-5 py-2.5 rounded-lg shadow-2xl opacity-0 transition-opacity duration-200 tracking-wide">
+                Press <span class="font-bold text-white bg-amber-900/60 px-1.5 py-0.5 rounded border border-amber-500">[E]</span> to Interact
+            </div>
+        </div>
+
+        <!-- Bottom HUD Bar -->
+        <div class="flex justify-between items-end">
+            <!-- Stats (Stamina & Sanity/Fear) -->
+            <div class="bg-black/90 backdrop-blur-md border border-zinc-800 rounded-xl p-4 w-72 md:w-80 space-y-3 shadow-2xl">
+                <!-- Stamina Bar -->
+                <div>
+                    <div class="flex justify-between text-xs font-mono-tech mb-1 text-zinc-300">
+                        <span>STAMINA (SHIFT)</span>
+                        <span id="stamina-val">100%</span>
+                    </div>
+                    <div class="w-full bg-zinc-900 rounded-full h-2.5 overflow-hidden border border-zinc-800">
+                        <div id="stamina-bar" class="bg-emerald-500 h-full w-full transition-all duration-75"></div>
+                    </div>
+                </div>
+
+                <!-- Sanity / Fear Meter -->
+                <div>
+                    <div class="flex justify-between text-xs font-mono-tech mb-1 text-zinc-300">
+                        <span>SANITY / FEAR</span>
+                        <span id="sanity-val">100%</span>
+                    </div>
+                    <div class="w-full bg-zinc-900 rounded-full h-2.5 overflow-hidden border border-zinc-800">
+                        <div id="sanity-bar" class="bg-indigo-500 h-full w-full transition-all duration-150"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flashlight & Keys Inventory -->
+            <div class="flex items-end gap-3">
+                <!-- Flashlight Indicator -->
+                <div class="bg-black/90 backdrop-blur-md border border-zinc-800 rounded-xl p-3.5 text-center w-32 shadow-2xl">
+                    <div class="text-xs font-mono-tech text-zinc-400 mb-1">FLASHLIGHT [F]</div>
+                    <div id="flashlight-status" class="text-xs font-bold uppercase text-amber-400">ON</div>
+                    <div class="w-full bg-zinc-900 rounded-full h-2 mt-2 overflow-hidden border border-zinc-800">
+                        <div id="battery-bar" class="bg-amber-400 h-full w-full transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Inventory Keys -->
+                <div class="bg-black/90 backdrop-blur-md border border-zinc-800 rounded-xl p-3.5 flex gap-3 shadow-2xl">
+                    <div id="key-bronze" class="w-10 h-10 rounded-lg border border-zinc-700 bg-zinc-900/80 flex items-center justify-center opacity-20 text-amber-600 font-bold text-lg transition-all duration-300" title="Bronze Key (Basement)">🔑</div>
+                    <div id="key-silver" class="w-10 h-10 rounded-lg border border-zinc-700 bg-zinc-900/80 flex items-center justify-center opacity-20 text-gray-300 font-bold text-lg transition-all duration-300" title="Silver Key (2F)">🔑</div>
+                    <div id="key-gold" class="w-10 h-10 rounded-lg border border-zinc-700 bg-zinc-900/80 flex items-center justify-center opacity-20 text-yellow-400 font-bold text-lg transition-all duration-300" title="Gold Master Key (Attic)">🔑</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Title Screen -->
+    <div id="title-screen" class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-zinc-950/98 p-6 text-center">
+        <h1 class="text-6xl md:text-9xl font-creepster text-red-700 tracking-wider mb-2 drop-shadow-[0_10px_35px_rgba(220,38,38,0.7)]">
+            THE LOCUST
+        </h1>
+        <p class="text-red-500 font-nosifer text-xs md:text-sm mb-6 tracking-widest uppercase">
+            Blackwood Manor Creepypasta Nightmares
+        </p>
+
+        <div class="bg-zinc-900/90 border border-red-900/50 rounded-2xl p-6 max-w-xl mb-8 text-left space-y-3 text-sm text-zinc-300 font-mono-tech shadow-2xl">
+            <div class="text-amber-500 font-bold uppercase border-b border-zinc-800 pb-2 text-base flex justify-between items-center">
+                <span>SURVIVAL CONTROLS</span>
+                <span class="text-xs text-red-400">HARDCORE HORROR</span>
+            </div>
+            <div>• <span class="text-white font-bold">WASD</span> : Move around mansion floors</div>
+            <div>• <span class="text-white font-bold">Mouse</span> : First-person camera look (Pointer Lock)</div>
+            <div>• <span class="text-white font-bold">Shift</span> : Sprint (Depletes Stamina)</div>
+            <div>• <span class="text-white font-bold">C / Ctrl</span> : Crouch (Silent movement, reduces entity detection)</div>
+            <div>• <span class="text-white font-bold">E</span> : Interact / Hide in Wardrobes & Under Beds / Collect Batteries & Keys</div>
+            <div>• <span class="text-white font-bold">F</span> : Toggle Flashlight (Consumes Battery Power)</div>
+            <div>• <span class="text-white font-bold">Spacebar</span> : Hold Breath while hiding inside closets</div>
+            <div class="text-red-400 italic text-xs pt-3 border-t border-zinc-800">
+                WARNING: The Creepypasta Entity tracks footsteps and sound across 4 floors. When close, hide immediately!
+            </div>
+        </div>
+
+        <button id="btn-start" class="px-10 py-5 bg-red-900 hover:bg-red-800 text-white font-bold text-lg tracking-widest uppercase rounded-xl border-2 border-red-500 transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-2xl shadow-red-950">
+            ENTER THE NIGHTMARE
+        </button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/98 p-6 hidden">
+        <h2 id="gameover-title" class="text-6xl md:text-8xl font-creepster text-red-600 mb-2 drop-shadow-[0_0_25px_rgba(255,0,0,0.9)]">YOU WERE CONSUMED</h2>
+        <p id="gameover-msg" class="text-zinc-400 font-mono-tech mb-8 text-lg">Your remains lie forgotten in Blackwood Manor...</p>
+        <button id="btn-restart" class="px-8 py-4 bg-red-900 hover:bg-red-800 text-white font-bold text-base tracking-wider uppercase rounded-lg border border-red-600 transition-all shadow-xl">
+            TRY AGAIN
+        </button>
+    </div>
+
+    <script>
+        // Global Game State
+        let scene, camera, renderer, clock;
+        let isGameStarted = false, isGameOver = false, isJumpscaring = false;
+
+        // Player Attributes State
+        const player = {
+            position: new THREE.Vector3(0, 1.6, 12),
+            velocity: new THREE.Vector3(),
+            rotation: new THREE.Euler(0, 0, 0, 'YXZ'),
+            speed: 4.8,
+            crouchSpeed: 2.2,
+            sprintSpeed: 8.5,
+            isCrouching: false,
+            isSprinting: false,
+            isHiding: false,
+            isHoldingBreath: false,
+            breathMeter: 100,
+            currentHidingSpot: null,
+            stamina: 100,
+            sanity: 100,
+            flashlightOn: true,
+            flashlightBattery: 100,
+            keys: { bronze: false, silver: false, gold: false },
+            currentFloor: 1
+        };
+
+        const keysPressed = {};
+        let flashlightLight, flashlightTarget, ambientSconces = [];
+        let raycaster, interactRaycaster;
+        let interactableObjects = [];
+
+        // Creepypasta Monster State Machine
+        const monster = {
+            mesh: null,
+            position: new THREE.Vector3(0, 1.6, -10),
+            speed: 3.8,
+            chaseSpeed: 8.5,
+            state: 'PATROL', // PATROL, SEARCH, CHASE, TELEPORT
+            targetNode: null,
+            patrolIndex: 0,
+            teleportTimer: 0,
+            headMesh: null,
+            leftArm: null,
+            rightArm: null,
+            screamCooldown: 0
+        };
+
+        const patrolNodes = [];
+
+        // Procedural Audio Synthesizer (No external audio files needed)
+        class HorrorAudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.heartbeatOsc = null;
+                this.heartbeatGain = null;
+            }
+
+            init() {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+                this.startAmbientDrone();
+            }
+
+            startAmbientDrone() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(35, this.ctx.currentTime); // Low eerie drone sub
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(160, this.ctx.currentTime);
+
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+            }
+
+            pulseHeartbeat(intensity = 0.5) {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(70, now);
+                osc.frequency.exponentialRampToValueAtTime(18, now + 0.18);
+
+                gain.gain.setValueAtTime(intensity, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.18);
+            }
+
+            playFootstep() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(110, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.08);
+
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            }
+
+            playJumpscareScreech() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+
+                // High Screech
+                const osc1 = this.ctx.createOscillator();
+                const gain1 = this.ctx.createGain();
+                osc1.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(1600, now);
+                osc1.frequency.linearRampToValueAtTime(3200, now + 1.2);
+
+                gain1.gain.setValueAtTime(1.0, now);
+                gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+                // Low Bass Boom
+                const osc2 = this.ctx.createOscillator();
+                const gain2 = this.ctx.createGain();
+                osc2.type = 'square';
+                osc2.frequency.setValueAtTime(200, now);
+                osc2.frequency.exponentialRampToValueAtTime(20, now + 1.2);
+
+                gain2.gain.setValueAtTime(1.0, now);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+                osc1.connect(gain1);
+                gain1.connect(this.ctx.destination);
+                osc2.connect(gain2);
+                gain2.connect(this.ctx.destination);
+
+                osc1.start(now);
+                osc1.stop(now + 1.2);
+                osc2.start(now);
+                osc2.stop(now + 1.2);
+            }
+
+            playWhisper() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(320 + Math.random() * 200, now);
+                osc.frequency.linearRampToValueAtTime(160 + Math.random() * 100, now + 0.4);
+
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+
+            playCreak() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(240, now);
+                osc.frequency.linearRampToValueAtTime(160, now + 0.5);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+
+            playPickup() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(480, now);
+                osc.frequency.exponentialRampToValueAtTime(960, now + 0.2);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+
+        const audioEngine = new HorrorAudioEngine();
+
+        function createWoodTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#4a3222';
+            ctx.fillRect(0, 0, 512, 512);
+
+            ctx.fillStyle = '#2f1f14';
+            for (let i = 0; i < 700; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const w = Math.random() * 140 + 30;
+                const h = Math.random() * 3 + 1;
+                ctx.fillRect(x, y, w, h);
+            }
+
+            ctx.strokeStyle = '#1a100a';
+            ctx.lineWidth = 4;
+            for (let y = 0; y <= 512; y += 64) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(512, y);
+                ctx.stroke();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            return texture;
+        }
+
+        function createWallpaperTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#5c333a'; // Lighter burgundy vintage wallpaper pattern
+            ctx.fillRect(0, 0, 256, 256);
+
+            ctx.strokeStyle = '#381c21';
+            ctx.lineWidth = 3;
+
+            for (let x = 0; x <= 256; x += 32) {
+                for (let y = 0; y <= 256; y += 32) {
+                    ctx.beginPath();
+                    ctx.moveTo(x + 16, y);
+                    ctx.lineTo(x + 32, y + 16);
+                    ctx.lineTo(x + 16, y + 32);
+                    ctx.lineTo(x, y + 16);
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+            }
+
+            // Splatter blood stains on wall texture
+            ctx.fillStyle = '#880000';
+            for (let b = 0; b < 6; b++) {
+                const bx = Math.random() * 256;
+                const by = Math.random() * 256;
+                const br = Math.random() * 14 + 4;
+                ctx.beginPath();
+                ctx.arc(bx, by, br, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            return texture;
+        }
+
+        const woodTexture = createWoodTexture();
+        const wallpaperTexture = createWallpaperTexture();
+
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x12121c); // Slightly brighter ambient background
+            scene.fog = new THREE.FogExp2(0x12121c, 0.025); // Slightly lighter fog for improved visibility
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.copy(player.position);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            clock = new THREE.Clock();
+
+            // Flashlight setup
+            flashlightLight = new THREE.SpotLight(0xfffaed, 5.0, 28, Math.PI / 4.5, 0.4, 1);
+            flashlightLight.castShadow = true;
+            flashlightLight.shadow.mapSize.width = 1024;
+            flashlightLight.shadow.mapSize.height = 1024;
+            scene.add(flashlightLight);
+
+            flashlightTarget = new THREE.Object3D();
+            scene.add(flashlightTarget);
+            flashlightLight.target = flashlightTarget;
+
+            // Ambient Sconce / General Interior Light (Slightly brighter for enhanced visibility)
+            const ambientLight = new THREE.AmbientLight(0x4a4d6b, 1.2);
+            scene.add(ambientLight);
+
+            raycaster = new THREE.Raycaster();
+            interactRaycaster = new THREE.Raycaster();
+
+            // Build Environment & Spawns
+            buildMansionStructure();
+            spawnCreepypastaMonster();
+            spawnItemsAndHidingSpots();
+            initStaticCanvas();
+            initBloodCanvas();
+
+            // Event Handlers
+            window.addEventListener('resize', onWindowResize);
+            setupInput();
+        }
+
+        function buildMansionStructure() {
+            const wallMaterial = new THREE.MeshStandardMaterial({
+                map: wallpaperTexture,
+                roughness: 0.6
+            });
+            wallpaperTexture.repeat.set(4, 2);
+
+            const floorMaterial = new THREE.MeshStandardMaterial({
+                map: woodTexture,
+                roughness: 0.4
+            });
+            woodTexture.repeat.set(8, 8);
+
+            const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+            const stairMaterial = new THREE.MeshStandardMaterial({ color: 0x2e1a0e, roughness: 0.7 });
+
+            // 4 Distinct Floors: Basement (-6), Ground Floor (0), Upper 2F (6), Attic (12)
+            const floorHeights = [-6, 0, 6, 12];
+
+            floorHeights.forEach((y) => {
+                // Floor Plate
+                const floorGeo = new THREE.BoxGeometry(32, 0.3, 32);
+                const floorMesh = new THREE.Mesh(floorGeo, floorMaterial);
+                floorMesh.position.set(0, y, 0);
+                floorMesh.receiveShadow = true;
+                scene.add(floorMesh);
+
+                // Ceiling Plate
+                const ceilMesh = new THREE.Mesh(floorGeo, ceilingMaterial);
+                ceilMesh.position.set(0, y + 4.8, 0);
+                scene.add(ceilMesh);
+
+                // Perimeter Outer Walls
+                buildOuterWalls(y, wallMaterial);
+
+                // Ambient Wall Sconces (Slightly brighter)
+                addWallSconce(-12, y + 2.8, 0);
+                addWallSconce(12, y + 2.8, 0);
+                addWallSconce(0, y + 2.8, -12);
+                addWallSconce(0, y + 2.8, 12);
+            });
+
+            // OPAQUE SOLID GRAND STAIRCASES
+            // Staircase 1: Ground Floor (0) to 2F (6)
+            buildOpaqueStaircase(10, 0, -2, stairMaterial);
+
+            // Staircase 2: Basement (-6) to Ground Floor (0)
+            buildOpaqueStaircase(-10, -6, -2, stairMaterial);
+
+            // Staircase 3: 2F (6) to Attic (12)
+            buildOpaqueStaircase(0, 6, -10, stairMaterial);
+        }
+
+        function buildOuterWalls(yPos, material) {
+            const wallGeo = new THREE.BoxGeometry(32, 5, 0.4);
+            
+            const backWall = new THREE.Mesh(wallGeo, material);
+            backWall.position.set(0, yPos + 2.5, -16);
+            scene.add(backWall);
+
+            const frontWall = new THREE.Mesh(wallGeo, material);
+            frontWall.position.set(0, yPos + 2.5, 16);
+            scene.add(frontWall);
+
+            const sideWallGeo = new THREE.BoxGeometry(0.4, 5, 32);
+            const leftWall = new THREE.Mesh(sideWallGeo, material);
+            leftWall.position.set(-16, yPos + 2.5, 0);
+            scene.add(leftWall);
+
+            const rightWall = new THREE.Mesh(sideWallGeo, material);
+            rightWall.position.set(16, yPos + 2.5, 0);
+            scene.add(rightWall);
+        }
+
+        // Opaque Solid Staircase with Risers
+        function buildOpaqueStaircase(startX, startY, startZ, material) {
+            const numSteps = 16;
+            const stepWidth = 4.0;
+            const stepDepth = 0.5;
+            const stepHeight = 0.375;
+
+            const stairGroup = new THREE.Group();
+
+            for (let i = 0; i < numSteps; i++) {
+                const stepGeo = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
+                const stepMesh = new THREE.Mesh(stepGeo, material);
+                stepMesh.position.set(0, i * stepHeight, -i * stepDepth);
+                stepMesh.castShadow = true;
+                stepMesh.receiveShadow = true;
+                stairGroup.add(stepMesh);
+
+                // Opaque Riser Panel
+                const riserGeo = new THREE.BoxGeometry(stepWidth, stepHeight, 0.12);
+                const riserMesh = new THREE.Mesh(riserGeo, material);
+                riserMesh.position.set(0, (i * stepHeight) - (stepHeight / 2), -i * stepDepth + (stepDepth / 2));
+                stairGroup.add(riserMesh);
+            }
+
+            // Opaque Railing Structures
+            const railGeo = new THREE.BoxGeometry(0.2, 1.3, numSteps * stepDepth);
+            const railMesh1 = new THREE.Mesh(railGeo, material);
+            railMesh1.position.set(stepWidth / 2, (numSteps * stepHeight) / 2 + 0.5, -(numSteps * stepDepth) / 2);
+            stairGroup.add(railMesh1);
+
+            const railMesh2 = railMesh1.clone();
+            railMesh2.position.x = -stepWidth / 2;
+            stairGroup.add(railMesh2);
+
+            stairGroup.position.set(startX, startY, startZ);
+            scene.add(stairGroup);
+        }
+
+        function addWallSconce(x, y, z) {
+            const sconceLight = new THREE.PointLight(0xffc577, 2.2, 16);
+            sconceLight.position.set(x, y, z);
+            sconceLight.castShadow = false;
+            scene.add(sconceLight);
+            ambientSconces.push(sconceLight);
+
+            const geo = new THREE.CylinderGeometry(0.1, 0.15, 0.5);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x443322, metalness: 0.8 });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
+        }
+
+        function spawnItemsAndHidingSpots() {
+            // Hiding Wardrobes / Closets
+            createWardrobe(-11, 0, 11, 'wardrobe_1F_left');
+            createWardrobe(11, 0, -11, 'wardrobe_1F_right');
+            createWardrobe(11, 6, 11, 'wardrobe_2F');
+            createWardrobe(-11, -6, -11, 'wardrobe_basement');
+            createWardrobe(0, 12, 11, 'wardrobe_attic');
+
+            // Hiding Beds
+            createBed(-6, 0, -10, 'bed_1F');
+            createBed(6, 6, -8, 'bed_2F');
+
+            // Battery Pickups
+            spawnBattery(5, 0.5, 5, 'bat_1');
+            spawnBattery(-8, 6.5, -5, 'bat_2');
+            spawnBattery(6, -5.5, 8, 'bat_3');
+
+            // Front Exit Door
+            createDoor(0, 0, 15.8, 'MAIN_EXIT', true);
+
+            // Keys Placement
+            spawnKey(-13, -5.5, -13, 'bronze', 'key-bronze'); // Basement
+            spawnKey(13, 6.5, 12, 'silver', 'key-silver');   // 2F
+            spawnKey(0, 12.5, -12, 'gold', 'key-gold');      // Attic
+        }
+
+        function createWardrobe(x, y, z, id) {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: 0x3d2716, roughness: 0.8 });
+
+            const bodyGeo = new THREE.BoxGeometry(2.4, 4.4, 1.8);
+            const body = new THREE.Mesh(bodyGeo, mat);
+            body.castShadow = true;
+            group.add(body);
+
+            const handleGeo = new THREE.SphereGeometry(0.09, 8, 8);
+            const handleMat = new THREE.MeshStandardMaterial({ color: 0xddaa44, metalness: 0.9 });
+            const handle = new THREE.Mesh(handleGeo, handleMat);
+            handle.position.set(0.35, 0, 0.95);
+            group.add(handle);
+
+            group.position.set(x, y + 2.2, z);
+            group.userData = { id: id, type: 'HIDING_SPOT', name: 'Wardrobe Closet' };
+
+            scene.add(group);
+            interactableObjects.push(group);
+        }
+
+        function createBed(x, y, z, id) {
+            const group = new THREE.Group();
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x221105 });
+            const sheetMat = new THREE.MeshStandardMaterial({ color: 0x880000 });
+
+            const frameGeo = new THREE.BoxGeometry(3.2, 0.8, 4.2);
+            const frame = new THREE.Mesh(frameGeo, frameMat);
+            group.add(frame);
+
+            const sheetGeo = new THREE.BoxGeometry(3.0, 0.4, 4.0);
+            const sheet = new THREE.Mesh(sheetGeo, sheetMat);
+            sheet.position.y = 0.5;
+            group.add(sheet);
+
+            group.position.set(x, y + 0.4, z);
+            group.userData = { id: id, type: 'HIDING_SPOT', name: 'Under Bed' };
+
+            scene.add(group);
+            interactableObjects.push(group);
+        }
+
+        function createDoor(x, y, z, doorId, isLocked) {
+            const doorGeo = new THREE.BoxGeometry(2.8, 4.6, 0.25);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x5a3b23, roughness: 0.6 });
+            const door = new THREE.Mesh(doorGeo, mat);
+            door.position.set(x, y + 2.3, z);
+            door.userData = { id: doorId, type: 'DOOR', locked: isLocked, isOpen: false };
+            scene.add(door);
+            interactableObjects.push(door);
+        }
+
+        function spawnKey(x, y, z, keyType, elementId) {
+            const geo = new THREE.TorusGeometry(0.18, 0.06, 8, 16);
+            let color = 0xcd7f32;
+            if (keyType === 'silver') color = 0xdcdcdc;
+            if (keyType === 'gold') color = 0xffd700;
+
+            const mat = new THREE.MeshStandardMaterial({ color: color, metalness: 0.9, roughness: 0.1 });
+            const keyMesh = new THREE.Mesh(geo, mat);
+            keyMesh.position.set(x, y, z);
+            keyMesh.userData = { type: 'KEY', keyType: keyType, hudId: elementId };
+            
+            scene.add(keyMesh);
+            interactableObjects.push(keyMesh);
+        }
+
+        function spawnBattery(x, y, z, id) {
+            const geo = new THREE.CylinderGeometry(0.12, 0.12, 0.35, 12);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x22c55e, metalness: 0.5 });
+            const batMesh = new THREE.Mesh(geo, mat);
+            batMesh.position.set(x, y, z);
+            batMesh.userData = { type: 'BATTERY', id: id };
+            scene.add(batMesh);
+            interactableObjects.push(batMesh);
+        }
+
+        function spawnCreepypastaMonster() {
+            const group = new THREE.Group();
+
+            // Elongated Pale Slender Body
+            const bodyGeo = new THREE.CylinderGeometry(0.22, 0.38, 3.8, 10);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x050508, roughness: 0.9 });
+            const body = new THREE.Mesh(bodyGeo, mat);
+            group.add(body);
+
+            // Pale Distorted Skull Head
+            const headGeo = new THREE.SphereGeometry(0.45, 16, 16);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xe0e0ea, roughness: 0.2 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.set(0, 2.1, 0);
+            group.add(head);
+            monster.headMesh = head;
+
+            // Piercing Glowing Red Pupil Eyes
+            const eyeGeo = new THREE.SphereGeometry(0.11, 8, 8);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.15, 2.15, 0.35);
+            group.add(leftEye);
+
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(0.15, 2.15, 0.35);
+            group.add(rightEye);
+
+            const pupilGeo = new THREE.SphereGeometry(0.05, 8, 8);
+            const pupilMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+            pupil.position.set(-0.15, 2.15, 0.43);
+            group.add(pupil);
+
+            const pupil2 = pupil.clone();
+            pupil2.position.x = 0.15;
+            group.add(pupil2);
+
+            // Wide Creepy Blood-Soaked Razor Smile
+            const smileGeo = new THREE.TorusGeometry(0.2, 0.025, 8, 16, Math.PI);
+            const smileMat = new THREE.MeshBasicMaterial({ color: 0xcc0000 });
+            const smile = new THREE.Mesh(smileGeo, smileMat);
+            smile.position.set(0, 1.95, 0.35);
+            smile.rotation.x = Math.PI / 2;
+            group.add(smile);
+
+            // Distorted Long Limbs
+            const armGeo = new THREE.CylinderGeometry(0.06, 0.05, 3.2);
+            const armMat = new THREE.MeshStandardMaterial({ color: 0x0f0f14 });
+
+            monster.leftArm = new THREE.Mesh(armGeo, armMat);
+            monster.leftArm.position.set(-0.5, 0.9, 0);
+            monster.leftArm.rotation.z = 0.35;
+            group.add(monster.leftArm);
+
+            monster.rightArm = new THREE.Mesh(armGeo, armMat);
+            monster.rightArm.position.set(0.5, 0.9, 0);
+            monster.rightArm.rotation.z = -0.35;
+            group.add(monster.rightArm);
+
+            monster.mesh = group;
+            monster.mesh.position.set(0, 1.6, -10);
+            scene.add(monster.mesh);
+
+            // Patrol Nodes spanning all 4 floors
+            patrolNodes.push(
+                new THREE.Vector3(0, 1.6, -10),
+                new THREE.Vector3(12, 1.6, 0),
+                new THREE.Vector3(-12, 1.6, 0),
+                new THREE.Vector3(10, 7.6, -2),   // 2F
+                new THREE.Vector3(-10, -4.4, -2), // Basement
+                new THREE.Vector3(0, 13.6, 10)    // Attic
+            );
+        }
+
+        function updateMonsterAI(delta) {
+            if (!monster.mesh || isGameOver || isJumpscaring) return;
+
+            const distToPlayer = monster.mesh.position.distanceTo(player.position);
+
+            // Head and Arm Twitching Animations
+            if (monster.headMesh) {
+                monster.headMesh.rotation.z = (Math.random() - 0.5) * 0.6;
+                monster.headMesh.rotation.x = (Math.random() - 0.5) * 0.6;
+            }
+            if (monster.leftArm && monster.rightArm) {
+                monster.leftArm.rotation.x = Math.sin(clock.getElapsedTime() * 12) * 0.5;
+                monster.rightArm.rotation.x = -Math.sin(clock.getElapsedTime() * 12) * 0.5;
+            }
+
+            // Heartbeat & Whisper Cues
+            if (distToPlayer < 15.0) {
+                const pulseRate = Math.max(0.2, distToPlayer / 15.0);
+                audioEngine.pulseHeartbeat(1.0 - pulseRate);
+
+                // Update BPM Visual
+                const bpm = Math.round(72 + (1.0 - pulseRate) * 85);
+                document.getElementById('bpm-text').innerText = bpm + ' BPM';
+
+                if (Math.random() < 0.04) audioEngine.playWhisper();
+            }
+
+            // Teleportation Logic (If unobserved and far away)
+            monster.teleportTimer += delta;
+            if (monster.teleportTimer > 10.0 && distToPlayer > 18.0 && !player.isHiding) {
+                monster.teleportTimer = 0;
+                const targetNode = patrolNodes[Math.floor(Math.random() * patrolNodes.length)];
+                monster.mesh.position.copy(targetNode);
+                audioEngine.playCreak();
+            }
+
+            // Detection Mechanics (Considers crouching & breath-holding)
+            let detectionRadius = 14.0;
+            if (player.isCrouching) detectionRadius = 8.0;
+            if (player.isHiding && player.isHoldingBreath) detectionRadius = 1.8;
+
+            if (distToPlayer < detectionRadius) {
+                monster.state = 'CHASE';
+            } else if (player.isHiding && monster.state === 'CHASE') {
+                monster.state = 'SEARCH';
+            }
+
+            // Movement Behaviors
+            if (monster.state === 'PATROL') {
+                const target = patrolNodes[monster.patrolIndex];
+                moveMonster(target, monster.speed, delta);
+
+                if (monster.mesh.position.distanceTo(target) < 1.2) {
+                    monster.patrolIndex = (monster.patrolIndex + 1) % patrolNodes.length;
+                }
+            } else if (monster.state === 'CHASE') {
+                moveMonster(player.position, monster.chaseSpeed, delta);
+
+                // Jumpscare on Contact
+                if (distToPlayer < 1.8) {
+                    executeJumpscare();
+                }
+            } else if (monster.state === 'SEARCH') {
+                setTimeout(() => { if (monster.state === 'SEARCH') monster.state = 'PATROL'; }, 4000);
+            }
+        }
+
+        function moveMonster(targetPos, speed, delta) {
+            const dir = new THREE.Vector3().subVectors(targetPos, monster.mesh.position);
+            dir.y = 0;
+            dir.normalize();
+            monster.mesh.position.addScaledVector(dir, speed * delta);
+            monster.mesh.lookAt(targetPos.x, monster.mesh.position.y, targetPos.z);
+        }
+
+        function executeJumpscare() {
+            if (isJumpscaring) return;
+            isJumpscaring = true;
+            document.exitPointerLock();
+
+            // Screen Scream & Dynamic Glitch SVG
+            audioEngine.playJumpscareScreech();
+            document.getElementById('jumpscare-container').classList.remove('hidden');
+            document.getElementById('blood-canvas').classList.remove('hidden');
+
+            setTimeout(() => {
+                document.getElementById('jumpscare-container').classList.add('hidden');
+                document.getElementById('blood-canvas').classList.add('hidden');
+                triggerGameOver();
+            }, 2300);
+        }
+
+        function setupInput() {
+            document.addEventListener('keydown', (e) => {
+                keysPressed[e.code] = true;
+
+                if (e.code === 'KeyF') toggleFlashlight();
+                if (e.code === 'KeyE') handleInteraction();
+                if (e.code === 'KeyC' || e.code === 'ControlLeft') player.isCrouching = !player.isCrouching;
+                if (e.code === 'Space' && player.isHiding) player.isHoldingBreath = true;
+            });
+
+            document.addEventListener('keyup', (e) => {
+                keysPressed[e.code] = false;
+                if (e.code === 'Space') player.isHoldingBreath = false;
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (document.pointerLockElement === document.body && !player.isHiding) {
+                    player.rotation.y -= e.movementX * 0.0025;
+                    player.rotation.x -= e.movementY * 0.0025;
+                    player.rotation.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, player.rotation.x));
+                }
+            });
+
+            document.getElementById('btn-start').addEventListener('click', () => {
+                document.body.requestPointerLock();
+                document.getElementById('title-screen').classList.add('hidden');
+                document.getElementById('hud').classList.remove('hidden');
+                audioEngine.init();
+                isGameStarted = true;
+            });
+
+            document.getElementById('btn-restart').addEventListener('click', () => {
+                location.reload();
+            });
+        }
+
+        function toggleFlashlight() {
+            if (player.flashlightBattery <= 0) return;
+            player.flashlightOn = !player.flashlightOn;
+            flashlightLight.visible = player.flashlightOn;
+            document.getElementById('flashlight-status').innerText = player.flashlightOn ? 'ON' : 'OFF';
+            audioEngine.playPickup();
+        }
+
+        function handleInteraction() {
+            if (player.isHiding) {
+                player.isHiding = false;
+                player.isHoldingBreath = false;
+                document.getElementById('hiding-overlay').classList.add('hidden');
+                document.getElementById('hud').classList.remove('hidden');
+                player.position.add(new THREE.Vector3(0, 0, 1.5));
+                return;
+            }
+
+            interactRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = interactRaycaster.intersectObjects(interactableObjects, true);
+
+            if (intersects.length > 0 && intersects[0].distance < 3.2) {
+                let obj = intersects[0].object;
+                while (obj.parent && !obj.userData.type) {
+                    obj = obj.parent;
+                }
+
+                const data = obj.userData;
+                if (data.type === 'HIDING_SPOT') {
+                    player.isHiding = true;
+                    player.currentHidingSpot = obj;
+                    document.getElementById('hiding-overlay').classList.remove('hidden');
+                    document.getElementById('hud').classList.add('hidden');
+                    audioEngine.playCreak();
+                } else if (data.type === 'KEY') {
+                    player.keys[data.keyType] = true;
+                    document.getElementById(data.hudId).style.opacity = '1.0';
+                    scene.remove(obj);
+                    audioEngine.playPickup();
+                    checkWinCondition();
+                } else if (data.type === 'BATTERY') {
+                    player.flashlightBattery = Math.min(100, player.flashlightBattery + 50);
+                    scene.remove(obj);
+                    audioEngine.playPickup();
+                } else if (data.type === 'DOOR' && data.id === 'MAIN_EXIT') {
+                    if (player.keys.bronze && player.keys.silver && player.keys.gold) {
+                        triggerWin();
+                    } else {
+                        document.getElementById('objective-text').innerText = 'Requires Bronze, Silver, & Gold Keys to Escape!';
+                    }
+                }
+            }
+        }
+
+        function checkWinCondition() {
+            if (player.keys.bronze && player.keys.silver && player.keys.gold) {
+                document.getElementById('objective-text').innerText = 'All keys collected! Unlock the Main Entrance Door on 1F!';
+            }
+        }
+
+        function updatePlayer(delta) {
+            if (!isGameStarted || isGameOver || isJumpscaring) return;
+
+            // Hiding Spot Breath Meter Mechanics
+            if (player.isHiding) {
+                if (player.isHoldingBreath) {
+                    player.breathMeter = Math.max(0, player.breathMeter - delta * 25);
+                } else {
+                    player.breathMeter = Math.min(100, player.breathMeter + delta * 20);
+                }
+                document.getElementById('breath-bar').style.width = player.breathMeter + '%';
+                document.getElementById('breath-val').innerText = Math.round(player.breathMeter) + '%';
+                return;
+            }
+
+            // Flashlight Battery Consumption
+            if (player.flashlightOn) {
+                player.flashlightBattery = Math.max(0, player.flashlightBattery - delta * 1.5);
+                if (player.flashlightBattery <= 0) {
+                    player.flashlightOn = false;
+                    flashlightLight.visible = false;
+                    document.getElementById('flashlight-status').innerText = 'DEAD';
+                }
+            }
+            document.getElementById('battery-bar').style.width = player.flashlightBattery + '%';
+
+            // Movement & Sprint
+            player.isSprinting = keysPressed['ShiftLeft'] && player.stamina > 5;
+            let currentSpeed = player.speed;
+            if (player.isCrouching) currentSpeed = player.crouchSpeed;
+            if (player.isSprinting) currentSpeed = player.sprintSpeed;
+
+            const moveDir = new THREE.Vector3();
+            if (keysPressed['KeyW']) moveDir.z -= 1;
+            if (keysPressed['KeyS']) moveDir.z += 1;
+            if (keysPressed['KeyA']) moveDir.x -= 1;
+            if (keysPressed['KeyD']) moveDir.x += 1;
+
+            moveDir.normalize();
+            moveDir.applyEuler(new THREE.Euler(0, player.rotation.y, 0));
+
+            player.position.addScaledVector(moveDir, currentSpeed * delta);
+
+            // Stamina Management
+            if (player.isSprinting && moveDir.length() > 0) {
+                player.stamina = Math.max(0, player.stamina - delta * 26);
+            } else {
+                player.stamina = Math.min(100, player.stamina + delta * 18);
+            }
+            document.getElementById('stamina-bar').style.width = player.stamina + '%';
+            document.getElementById('stamina-val').innerText = Math.round(player.stamina) + '%';
+
+            // Camera Transformation
+            camera.position.copy(player.position);
+            camera.position.y = player.isCrouching ? player.position.y - 0.7 : player.position.y;
+            camera.rotation.copy(player.rotation);
+
+            // Flashlight Aim
+            flashlightLight.position.copy(camera.position);
+            const forward = new THREE.Vector3(0, 0, -1).applyEuler(camera.rotation);
+            flashlightTarget.position.copy(camera.position).add(forward);
+
+            // Footsteps sound
+            if (moveDir.length() > 0 && Math.random() < 0.06) {
+                audioEngine.playFootstep();
+            }
+
+            // Sanity Decay
+            const distToMonster = monster.mesh.position.distanceTo(player.position);
+            if (distToMonster < 10.0) {
+                player.sanity = Math.max(0, player.sanity - delta * 20);
+                document.getElementById('fear-overlay').style.opacity = (1 - player.sanity / 100).toString();
+            }
+            document.getElementById('sanity-bar').style.width = player.sanity + '%';
+            document.getElementById('sanity-val').innerText = Math.round(player.sanity) + '%';
+
+            // Floor Location Indicator
+            if (player.position.y < -3) {
+                document.getElementById('floor-text').innerText = 'B1 - Basement Crypt';
+            } else if (player.position.y > 9) {
+                document.getElementById('floor-text').innerText = '3F - Dusty Attic';
+            } else if (player.position.y > 3) {
+                document.getElementById('floor-text').innerText = '2F - Upper Corridor';
+            } else {
+                document.getElementById('floor-text').innerText = '1F - Main Entrance Hall';
+            }
+        }
+
+        // Static Noise Canvas Effect Generator
+        function initStaticCanvas() {
+            const staticCanvas = document.getElementById('static-canvas');
+            const ctx = staticCanvas.getContext('2d');
+            staticCanvas.width = window.innerWidth / 4;
+            staticCanvas.height = window.innerHeight / 4;
+
+            function renderStatic() {
+                const imgData = ctx.createImageData(staticCanvas.width, staticCanvas.height);
+                const buffer = new Uint32Array(imgData.data.buffer);
+                for (let i = 0; i < buffer.length; i++) {
+                    if (Math.random() < 0.14) buffer[i] = 0xffffffff;
+                }
+                ctx.putImageData(imgData, 0, 0);
+                requestAnimationFrame(renderStatic);
+            }
+            renderStatic();
+        }
+
+        function initBloodCanvas() {
+            const bloodCanvas = document.getElementById('blood-canvas');
+            const ctx = bloodCanvas.getContext('2d');
+            bloodCanvas.width = window.innerWidth;
+            bloodCanvas.height = window.innerHeight;
+
+            ctx.fillStyle = '#aa0000';
+            for (let i = 0; i < 40; i++) {
+                const x = Math.random() * bloodCanvas.width;
+                const y = Math.random() * bloodCanvas.height;
+                const r = Math.random() * 80 + 20;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function triggerGameOver() {
+            isGameOver = true;
+            document.exitPointerLock();
+            document.getElementById('gameover-screen').classList.remove('hidden');
+        }
+
+        function triggerWin() {
+            isGameOver = true;
+            document.exitPointerLock();
+            document.getElementById('gameover-title').innerText = 'YOU ESCAPED!';
+            document.getElementById('gameover-title').classList.remove('text-red-600');
+            document.getElementById('gameover-title').classList.add('text-emerald-500');
+            document.getElementById('gameover-msg').innerText = 'You unlocked the front door and survived the terror!';
+            document.getElementById('gameover-screen').classList.remove('hidden');
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            if (isGameStarted && !isGameOver && !isJumpscaring) {
+                updatePlayer(delta);
+                updateMonsterAI(delta);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = () => {
+            initScene();
+            animate();
+        };
+    </script>
+</body>
+</html>
