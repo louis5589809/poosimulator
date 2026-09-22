@@ -56,7 +56,7 @@
         }
 
         .jumpscare-anim {
-            animation: ViolentJumpscareShake 0.05s infinite alternate;
+            animation: ViolentJumpscareShake 0.03s infinite alternate;
         }
 
         /* ECG Heart Rate Monitor Line Effect */
@@ -978,7 +978,7 @@
                 moveMonster(player.position, monster.chaseSpeed, delta);
 
                 // Jumpscare on Contact
-                if (distToPlayer < 1.8) {
+                if (distToPlayer < 3) {
                     executeJumpscare();
                 }
             } else if (monster.state === 'SEARCH') {
@@ -1134,7 +1134,7 @@
             document.getElementById('battery-bar').style.width = player.flashlightBattery + '%';
 
             // Movement & Sprint
-            player.isSprinting = keysPressed['ShiftLeft'] && player.stamina > 5;
+            player.isSprinting = keysPressed['ShiftLeft'] && player.stamina > 10;
             let currentSpeed = player.speed;
             if (player.isCrouching) currentSpeed = player.crouchSpeed;
             if (player.isSprinting) currentSpeed = player.sprintSpeed;
@@ -1152,9 +1152,9 @@
 
             // Stamina Management
             if (player.isSprinting && moveDir.length() > 0) {
-                player.stamina = Math.max(0, player.stamina - delta * 26);
+                player.stamina = Math.max(0, player.stamina - delta * 40);
             } else {
-                player.stamina = Math.min(100, player.stamina + delta * 18);
+                player.stamina = Math.min(100, player.stamina + delta * 40);
             }
             document.getElementById('stamina-bar').style.width = player.stamina + '%';
             document.getElementById('stamina-val').innerText = Math.round(player.stamina) + '%';
